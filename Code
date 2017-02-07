@@ -1,0 +1,119 @@
+Final Visualizations 
+
+For all of these visuals, ggplot2 was utilized. This loads that packgae.
+library(ggplot2)
+
+## Time Period Bar Chart- To create the time period visual, the inputs include the data which is ‘pokedata’, and the variable that is being analyzed ‘appearedDay’, this is the actual day in August of 2016. geom _bar is the geom function that is utilized to create a bar chart. Ggtitle was used to label the visual. The x and y labels are also specified in under labs. The produces a vertical bar chart counting the number of pokemon caught by the days possible.
+
+plot <- ggplot(data=pokedata, mapping=aes(x=appearedDay)) + geom_bar(stat="count", fill="darkred")+
+  ggtitle("Time Period of Data Collected") + labs(x="Day in August 2016", y="Number of Pokemon Caught")
+plot
+
+
+## Hours Bar Chart- To create the hours visual, the inputs include the data which is ‘pokedata’, and the variable that is being analyzed ‘appearedHour’, this is the hour from 0 to 23 on military time. geom _bar is the geom function that is utilized to create a bar chart. Ggtitle was used to label the visual. The x and y labels are also specified in under labs. The produces a vertical bar chart counting the number of pokemon caught by the hour they were caught.
+
+plot2 <- ggplot(data=pokedata, mapping=aes(x=appearedHour)) + geom_bar(stat="count", fill="darkred")+
+  ggtitle("Distribution of Pokemon Caught by Hour") + labs(x="Hour (Military Time)", y="Number of Pokemon Caught")
+plot2
+
+## Time of Day Bar Chart- To create the time of day visual, the inputs include the data which is ‘pokedata’, and the variable that is being analyzed ‘timeOfDay, this is the time of day in four categories, morning afternoon, evening and night. geom _bar is the geom function that is utilized to create a bar chart. Ggtitle was used to label the visual. The x and y labels are also specified in under labs. The produces a vertical bar chart counting the number of pokemon caught by the time of day.
+
+plot3 <- ggplot(data=pokedata, mapping=aes(x=appearedTimeOfDay)) + geom_bar(stat="count", fill="darkred")+
+  ggtitle("Distribution of Pokemon Caught by Time of Day") + labs(x="Time of Day Classification", y="Number of Pokemon Caught")
+plot3
+
+
+## Pokemon ID Bar Chart-To create the pokemon ID visual, the inputs include the data which is ‘pokedata’, and the variable that is being analyzed ‘pokemonId, this is the official pokemon ID number that is unique to each pokemon. geom _bar is the geom function that is utilized to create a bar chart. Ggtitle was used to label the visual. The x and y labels are also specified in under labs. The produces a vertical bar chart counting the number of pokemon caught by each specific pokemon.
+
+plot4 <- ggplot(data=pokedata, mapping=aes(x=pokemonId)) + geom_bar(stat="count", fill="darkred")+
+  ggtitle("Distribution of Pokemon Caught by Type") + labs(x="Official Pokemon ID Number", y="Number of Pokemon Caught")
+plot4
+
+
+## Continent Bar Chart-
+To create the continent visual, the inputs include the data which is ‘pokedata’, and the variable that is being analyzed ‘continent , this is the continent in which the pokemon is caught geom _bar is the geom function that is utilized to create a bar chart. Ggtitle was used to label the visual. The x and y labels are also specified in under labs. Coord_flip is also used to flip the axis so it is a more readable graph.The produces a vertical bar chart counting the number of pokemon caught by the continent they were caught on.
+
+plot4 <- ggplot(data=pokedata, mapping=aes(x=continent)) + geom_bar(stat="count", fill="darkred")+
+  ggtitle("Distribution of Pokemon Caught by Continent") + labs(x="Continent", y="Number of Pokemon Caught")+ 
+  coord_flip()
+plot4
+
+## Weather Bar Chart-To create the weather visual, the inputs include the data which is ‘pokedata’, and the variable that is being analyzed ‘weatherIcon’, this is the weather icon that is on the app at the time of capture. geom _bar is the geom function that is utilized to create a bar chart. Ggtitle was used to label the visual. The x and y labels are also specified in under labs. Coord_flip is also used to flip the axis so it is a more readable graph. The produces a vertical bar chart counting the number of pokemon caught by the weather type.
+
+plot5 <- ggplot(data=pokedata, mapping=aes(x=weatherIcon)) + geom_bar(stat="count", fill="darkred")+
+  ggtitle("Distribution of Pokemon Caught by Weather") + labs(x="Weather Discription", y="Number of Pokemon Caught")+ 
+  coord_flip()
+plot5
+
+
+
+##################### Predictive Models- The following code is to create a machine learning algorithem to predict where pokemon will spawn.
+#### Set Up #### - These are the requiered packages to create the models.
+
+library(ggplot2)
+library(readr) 
+library(caret)
+library(randomForest)
+library(ROCR)
+library(tidyverse)
+library(modelr)
+library(dplyr)
+library(pROC)
+
+
+## - This is renaming the data to a more usable name, that will be used when refrencing the data. 
+pokedata <- X300k
+rm(X300k)
+pokedata <- PEAPerformance
+rm(PEAPerformance)
+
+
+### Create Indicator Varible- This takes the intire datatset and crates an intire new varible that is binomial, based on if it was a specific pokemon or not, this example is 13. 
+pokedata$thirteen <- as.numeric(pokedata$pokemonId == 13 )
+
+#### PARTITION DATA ##- This splits the dataset up into multiple parts in order to train the model on part of the dataset, and still be able to test how it does on "new" data, or the rest of the data that we have set aside. the sample_frac including the .6 means that 60% of the data is reserved for the training data, leaving the remaining 40% to test the data on. 
+
+training_data<- sample_frac(pokedata,.6)
+test_data<- setdiff(pokedata,training_data)
+
+#### BUILD LOGISTIC MODEL ## - This is actually building the model, based on the variables that we want to include. For this we use gml. Because the indicator varible is a 0 or a 1, the family is set to binomial, and training data is specified because that is what we want to data to learn on. 
+
+logit1 <- glm(thirteen~latitude+longitude+
+                closeToWater+weather+temperature+weatherIcon+sunriseMinutesSince+
+                sunsetMinutesMidnight+urban+suburban+midurban+rural,
+              training_data,family = binomial)
+
+#- This shows the summary, the overall function that readtes the model, and which varibles are signifcant, and to what degree.
+
+summary(logit1)
+
+#- This exponentiates teh coefficents so that they can be interpreted correctly. 
+
+exp(coef(logit1))
+
+#### TEST MODEL ##- This is the model beign used on the new data, or the test data. it is creating a percent prediction for each varible and then saving it to a value called logit_probs.
+
+logit_probs<- predict(logit1,test_data,type = "response")
+logit_probs
+
+#### PLOT MODEL ##- This plot the roc curve assosiated with the model. Roc is creating the specific values of the line, and then te plot function actually plots it.
+
+logit_roc<- roc(test_data$thirteen,logit_probs)
+plot(logit_roc,xlab="FPR",ylab="TPR",legacy.axes=TRUE)
+
+
+#### ERROR RATE/ACCURACY ##
+
+logit_classes<-ifelse(logit_probs>.5,1,0)
+logit_classes!=test_data$thirteen
+
+#Accuracy
+(logit_classes!=test_data$thirteen)
+
+
+#Error rate
+mean(logit_classes!=test_data$thirteen)
+
+
+
+
